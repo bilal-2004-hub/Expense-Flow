@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — ExpenseFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  /* ── AUTH LAYOUT ── */
+  .auth-page {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* ── LEFT PANEL ── */
+  .auth-panel {
+    position: relative;
+    background: linear-gradient(145deg, #1e40af 0%, #2563eb 45%, #3b82f6 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 48px;
+    overflow: hidden;
+    color: #fff;
+  }
+  .auth-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(255,255,255,0.15) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(30,64,175,0.5) 0%, transparent 50%);
+  }
+  .auth-panel-logo {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    text-decoration: none;
+  }
+  .auth-panel-logo .logo-mark {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    backdrop-filter: blur(8px);
+  }
+  .auth-panel-content {
+    position: relative;
+    z-index: 1;
+  }
+  .auth-panel-content h2 {
+    font-size: clamp(1.8rem, 2.5vw, 2.4rem);
+    color: #fff;
+    line-height: 1.25;
+    margin-bottom: 16px;
+  }
+  .auth-panel-content p {
+    color: rgba(255,255,255,0.75);
+    font-size: 1rem;
+    max-width: 380px;
+    line-height: 1.7;
+    margin-bottom: 36px;
+  }
+  .auth-stat-row {
+    display: flex;
+    gap: 32px;
+  }
+  .auth-stat strong {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 1.6rem;
+    color: #fff;
+  }
+  .auth-stat span {
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.65);
+  }
+
+  /* Floating cards on panel */
+  .panel-card {
+    position: absolute;
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 16px;
+    padding: 16px 20px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: floatCard 5s ease-in-out infinite;
+  }
+  .panel-card.pc1 { top: 180px; right: 32px; animation-delay: 0s; }
+  .panel-card.pc2 { top: 180px; left: 32px; animation-delay: 1.5s; }
+  .panel-card .pc-icon {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; color: #fff;
+  }
+  .panel-card .pc-label { font-size: 0.72rem; color: rgba(255,255,255,0.7); }
+  .panel-card .pc-value { font-size: 0.95rem; font-weight: 700; color: #fff; }
+
+  /* Orbs */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .orb1 { width: 300px; height: 300px; background: #93c5fd; top: -80px; right: -80px; }
+  .orb2 { width: 200px; height: 200px; background: #1d4ed8; bottom: 100px; left: -60px; }
+
+  /* ── RIGHT PANEL (FORM) ── */
+  .auth-form-side {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    padding: 48px 32px;
+    overflow-y: auto;
+  }
+  .auth-form-box {
+    width: 100%;
+    max-width: 420px;
+  }
+  .auth-form-header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .auth-form-header h1 {
+    font-size: 1.9rem;
+    margin-bottom: 8px;
+  }
+  .auth-form-header p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+  }
+  .auth-form-header p a {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .auth-form-header p a:hover { text-decoration: underline; }
+
+  /* Form Card */
+  .auth-card {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: 36px 32px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(15,23,42,0.05);
+  }
+
+  /* Social Buttons */
+  .social-login {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .social-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1.5px solid #e2e8f0;
+    background: var(--card);
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .social-btn:hover {
+    background: var(--bg);
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+  }
+  .social-btn img { width: 18px; height: 18px; }
+
+  /* Divider */
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+  }
+  .auth-divider::before,
+  .auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+  }
+
+  /* Form fields */
+  .form-group {
+    margin-bottom: 20px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 7px;
+  }
+  .input-wrap {
+    position: relative;
+  }
+  .input-wrap i.input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    pointer-events: none;
+  }
+  .input-wrap input {
+    width: 100%;
+    padding: 12px 14px 12px 40px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    background: var(--bg);
+    color: var(--text-primary);
+    transition: var(--transition);
+    outline: none;
+  }
+  .input-wrap input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    background: var(--card);
+  }
+  .input-wrap input.error {
+    border-color: var(--expense);
+    box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+  }
+  .input-wrap .toggle-pw {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    padding: 2px;
+    transition: var(--transition);
+  }
+  .input-wrap .toggle-pw:hover { color: var(--primary); }
+  .field-error {
+    font-size: 0.78rem;
+    color: var(--expense);
+    margin-top: 5px;
+    display: none;
+    align-items: center;
+    gap: 4px;
+  }
+  .field-error.show { display: flex; }
+
+  /* Options row */
+  .form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .checkbox-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    user-select: none;
+  }
+  .checkbox-wrap input[type="checkbox"] {
+    width: 16px; height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+  .forgot-link {
+    font-size: 0.88rem;
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .forgot-link:hover { text-decoration: underline; }
+
+  /* Submit button */
+  .auth-submit {
+    width: 100%;
+    padding: 13px;
+    border-radius: 10px;
+    background: var(--gradient-primary);
+    color: #fff;
+    font-size: 0.97rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .auth-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md), 0 0 0 4px rgba(37,99,235,0.15);
+  }
+  .auth-submit:active { transform: translateY(0); }
+  .auth-submit .btn-spinner {
+    width: 18px; height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  .auth-submit.loading .btn-text { display: none; }
+  .auth-submit.loading .btn-spinner { display: block; }
+
+  /* Footer note */
+  .auth-footer-note {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .auth-footer-note a { color: var(--primary); }
+
+  /* Alert */
+  .auth-alert {
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    margin-bottom: 20px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid;
+  }
+  .auth-alert.show { display: flex; }
+  .auth-alert.error {
+    background: #fef2f2;
+    color: #b91c1c;
+    border-color: #fca5a5;
+  }
+  .auth-alert.success {
+    background: #f0fdf4;
+    color: #15803d;
+    border-color: #86efac;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .auth-page { grid-template-columns: 1fr; }
+    .auth-panel { display: none; }
+    .auth-form-side { padding: 32px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="auth-page">
+
+  <!-- ====== LEFT BRAND PANEL ====== -->
+  <div class="auth-panel">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+
+    <a href="index.html" class="auth-panel-logo">
+      <span class="logo-mark"><i class="fa-solid fa-wave-square"></i></span>
+      ExpenseFlow
+    </a>
+
+    <!-- Floating cards -->
+    <div class="panel-card pc1">
+      <div class="pc-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+      <div>
+        <div class="pc-label">Monthly savings</div>
+        <div class="pc-value">+ $1,840</div>
+      </div>
+    </div>
+    <div class="panel-card pc2">
+      <div class="pc-icon"><i class="fa-solid fa-chart-pie"></i></div>
+      <div>
+        <div class="pc-label">Budget used</div>
+        <div class="pc-value">68% of $5,000</div>
+      </div>
+    </div>
+
+    <div class="auth-panel-content">
+      <h2>Welcome back to your financial command centre</h2>
+      <p>Log in to view your spending insights, track budgets, and stay on top of every dollar — all in one beautifully simple dashboard.</p>
+      <div class="auth-stat-row">
+        <div class="auth-stat"><strong>48k+</strong><span>Active users</span></div>
+        <div class="auth-stat"><strong>$120M+</strong><span>Tracked expenses</span></div>
+        <div class="auth-stat"><strong>4.9/5</strong><span>Average rating</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== RIGHT FORM PANEL ====== -->
+  <div class="auth-form-side">
+    <div class="auth-form-box">
+
+      <div class="auth-form-header">
+        <h1>Login</h1>
+        <p>Don't have an account? <a href="signup.html">Create one free</a></p>
+      </div>
+
+      <div class="auth-card">
+
+        <!-- Alert -->
+        <div class="auth-alert error" id="login-alert">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span id="login-alert-msg">Invalid email or password.</span>
+        </div>
+
+
+
+        <!-- Form -->
+        <form id="login-form" novalidate>
+          <div class="form-group">
+            <label for="login-email">Email address</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-envelope input-icon"></i>
+              <input type="email" id="login-email" name="email" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="field-error" id="email-error"><i class="fa-solid fa-circle-exclamation"></i><span></span></div>
+          </div>
+
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-lock input-icon"></i>
+              <input type="password" id="login-password" name="password" placeholder="Enter your password" autocomplete="current-password">
+              <button type="button" class="toggle-pw" id="toggle-pw" aria-label="Show password">
+                <i class="fa-solid fa-eye" id="pw-icon"></i>
+              </button>
+            </div>
+            <div class="field-error" id="pw-error"><i class="fa-solid fa-circle-exclamation"></i><span></span></div>
+          </div>
+
+          <div class="form-options">
+            <label class="checkbox-wrap">
+              <input type="checkbox" id="remember-me"> Remember me
+            </label>
+            <a href="forgot-password.html" class="forgot-link">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="auth-submit" id="login-btn">
+            <span class="btn-text"><i class="fa-solid fa-right-to-bracket"></i> Login</span>
+            <div class="btn-spinner"></div>
+          </button>
+        </form>
+
+      </div>
+
+      <p class="auth-footer-note">
+        By signing in, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/storage.js"></script>
+<script>
+  // ── Toggle password visibility ──
+  const togglePw = document.getElementById('toggle-pw');
+  const pwInput  = document.getElementById('login-password');
+  const pwIcon   = document.getElementById('pw-icon');
+
+  togglePw.addEventListener('click', () => {
+    const isText = pwInput.type === 'text';
+    pwInput.type = isText ? 'password' : 'text';
+    pwIcon.className = isText ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+  });
+
+  // ── Show field error ──
+  function showError(inputId, errId, msg) {
+    const input = document.getElementById(inputId);
+    const err   = document.getElementById(errId);
+    input.classList.add('error');
+    err.classList.add('show');
+    err.querySelector('span').textContent = msg;
+  }
+
+  function clearError(inputId, errId) {
+    const input = document.getElementById(inputId);
+    const err   = document.getElementById(errId);
+    input.classList.remove('error');
+    err.classList.remove('show');
+  }
+
+  // ── Live validation ──
+  document.getElementById('login-email').addEventListener('input', function() {
+    if (this.value.trim()) clearError('login-email', 'email-error');
+  });
+  document.getElementById('login-password').addEventListener('input', function() {
+    if (this.value.trim()) clearError('login-password', 'pw-error');
+  });
+
+  // ── Alert helpers ──
+  function showAlert(msg, type = 'error') {
+    const alert = document.getElementById('login-alert');
+    document.getElementById('login-alert-msg').textContent = msg;
+    alert.className = `auth-alert ${type} show`;
+  }
+  function hideAlert() {
+    document.getElementById('login-alert').classList.remove('show');
+  }
+
+  // ── Form submission with Firebase Auth ──
+  document.getElementById('login-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    hideAlert();
+
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    let valid = true;
+
+    // Validate email
+    if (!email) {
+      showError('login-email', 'email-error', 'Email address is required.');
+      valid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showError('login-email', 'email-error', 'Please enter a valid email address.');
+      valid = false;
+    }
+
+    // Validate password
+    if (!password) {
+      showError('login-password', 'pw-error', 'Password is required.');
+      valid = false;
+    }
+
+    if (!valid) return;
+
+    // Loading state
+    const btn = document.getElementById('login-btn');
+    btn.classList.add('loading');
+
+    try {
+      if (typeof isFirebaseConfigured === 'function' && !isFirebaseConfigured()) {
+        throw new Error('Firebase API key is not configured. Please add your Firebase credentials in client/js/firebase-config.js');
+      }
+
+      // Authenticate using Firebase Web SDK
+      const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+      const token = await user.getIdToken();
+
+      localStorage.setItem('ef_id_token', token);
+      localStorage.setItem('ef_current_user', JSON.stringify({
+        uid: user.uid,
+        email: user.email,
+        name: user.displayName || email.split('@')[0]
+      }));
+
+      // Save credentials if "Remember me" is checked
+      const rememberMe = document.getElementById('remember-me').checked;
+      if (rememberMe) {
+        localStorage.setItem('ef_remembered_credentials', JSON.stringify({ email, password }));
+      } else {
+        localStorage.removeItem('ef_remembered_credentials');
+      }
+
+      btn.classList.remove('loading');
+      showAlert('Login successful! Redirecting…', 'success');
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
+    } catch (authError) {
+      btn.classList.remove('loading');
+      let msg = 'Invalid email or password. Please try again.';
+      if (
+        authError.code === 'auth/api-key-not-valid' ||
+        authError.code === 'auth/invalid-api-key' ||
+        (authError.message && authError.message.includes('api-key-not-valid'))
+      ) {
+        msg = 'Firebase API Key is missing or invalid. Please update client/js/firebase-config.js with your Firebase Web credentials.';
+      } else if (
+        authError.code === 'auth/user-not-found' ||
+        authError.code === 'auth/wrong-password' ||
+        authError.code === 'auth/invalid-credential'
+      ) {
+        msg = 'Invalid email or password.';
+      } else if (authError.code === 'auth/too-many-requests') {
+        msg = 'Access temporarily disabled due to too many failed attempts.';
+      } else if (authError.message) {
+        msg = authError.message;
+      }
+      showAlert(msg);
+    }
+  });
+
+  // ── Prefill remembered credentials ──
+  const remembered = localStorage.getItem('ef_remembered_credentials');
+  if (remembered) {
+    try {
+      const creds = JSON.parse(remembered);
+      if (creds.email) document.getElementById('login-email').value = creds.email;
+      if (creds.password) document.getElementById('login-password').value = creds.password;
+      document.getElementById('remember-me').checked = true;
+    } catch(e) {}
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics — ExpenseFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/responsive.css">
+</head>
+<body data-page="analytics">
+<div class="overlay-scrim"></div>
+
+<div class="app-shell">
+  <aside class="app-sidebar">
+    <button class="sidebar-close"><i class="fa-solid fa-xmark"></i></button>
+    <a href="index.html" class="logo"><span class="logo-mark"><i class="fa-solid fa-wave-square"></i></span>ExpenseFlow</a>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"><i class="fa-solid fa-grip"></i> Dashboard</a>
+      <a href="transactions.html"><i class="fa-solid fa-arrow-right-arrow-left"></i> Transactions</a>
+      <a href="analytics.html"><i class="fa-solid fa-chart-line"></i> Analytics</a>
+      <a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="index.html"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+    </div>
+  </aside>
+
+  <main class="app-main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-btn"><i class="fa-solid fa-bars"></i></button>
+        <div class="greeting">
+          <h1>Analytics</h1>
+          <p>Understand your spending patterns at a glance.</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn"><i class="fa-solid fa-bell"></i><span class="badge">3</span></button>
+        <a href="settings.html" class="profile-chip">
+          <div class="avatar-circle" id="profile-initials">AM</div>
+          <span id="topbar-user-name">Alex Morgan</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- INSIGHTS -->
+    <div class="insight-grid" id="financial-insights"></div>
+
+    <!-- TREND + DONUT -->
+    <div class="analytics-grid">
+      <div class="widget">
+        <div class="widget-head">
+          <h3>Monthly Expense Trend</h3>
+          <span style="font-size:0.8rem;color:var(--text-secondary);">Last 6 months</span>
+        </div>
+        <div class="chart-wrap"><canvas id="analytics-trend-chart" style="width:100%;height:280px;"></canvas></div>
+      </div>
+      <div class="widget">
+        <div class="widget-head"><h3>Category Distribution</h3></div>
+        <canvas id="analytics-donut" style="width:100%;height:160px;"></canvas>
+        <div id="analytics-legend" style="margin-top:14px;"></div>
+      </div>
+    </div>
+
+    <!-- TOP CATEGORIES + COMPARISONS -->
+    <div class="analytics-grid">
+      <div class="widget">
+        <div class="widget-head"><h3>Top Categories</h3></div>
+        <div id="top-categories"></div>
+      </div>
+      <div class="widget">
+        <div class="widget-head"><h3>Savings Progress</h3></div>
+        <div class="progress-label-row">
+          <span id="analytics-savings-label">$0 of $0</span>
+          <span id="analytics-savings-pct" style="font-weight:700;color:var(--primary);">0%</span>
+        </div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" id="analytics-savings-fill"></div></div>
+      </div>
+    </div>
+
+    <div class="analytics-grid">
+      <div class="widget">
+        <div class="widget-head"><h3>Monthly Comparison</h3></div>
+        <div id="monthly-comparison"></div>
+      </div>
+      <div class="widget">
+        <div class="widget-head"><h3>Weekly Comparison</h3></div>
+        <div id="weekly-comparison"></div>
+      </div>
+    </div>
+
+    <!-- HEATMAP -->
+    <div class="widget">
+      <div class="widget-head"><h3>Spending Heatmap</h3></div>
+      <div class="heatmap" id="spending-heatmap"></div>
+      <div class="heatmap-legend">
+        <span>Less</span>
+        <span class="heatmap-cell" style="background:var(--bg)"></span>
+        <span class="heatmap-cell" style="background:#93c5fd"></span>
+        <span class="heatmap-cell" style="background:#3b82f6"></span>
+        <span class="heatmap-cell" style="background:#1e3a8a"></span>
+        <span>More</span>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container"></div>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/app.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/analytics.js"></script>
+</body>
+</html>

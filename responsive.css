@@ -1,0 +1,101 @@
+/* =========================================================
+   EXPENSEFLOW — RESPONSIVE RULES
+   Breakpoints: 1200px (laptop) / 992px (tablet) / 768px / 480px (mobile)
+   ========================================================= */
+
+/* ---------- LAPTOP (<=1200px) ---------- */
+@media (max-width: 1200px) {
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+  .dash-grid { grid-template-columns: 1fr; }
+  .analytics-grid { grid-template-columns: 1fr; }
+  .insight-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ---------- TABLET (<=992px) ---------- */
+@media (max-width: 992px) {
+  .hero-inner { grid-template-columns: 1fr; text-align: center; }
+  .hero p { margin-inline: auto; }
+  .hero-ctas, .hero-stats { justify-content: center; }
+  .hero-visual { height: 340px; margin-top: 20px; }
+  .why-grid { grid-template-columns: 1fr; }
+  .testimonial-grid { grid-template-columns: 1fr; }
+  .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin-inline: auto; }
+  .price-card.featured { transform: scale(1); }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+  .settings-grid { grid-template-columns: 1fr; }
+
+  .nav-menu { display: none; }
+  .hamburger { display: flex; }
+
+  /* App shell -> collapsible sidebar */
+  .app-sidebar { transform: translateX(-100%); box-shadow: var(--shadow-lg); }
+  .app-sidebar.open { transform: translateX(0); }
+  .app-main { margin-left: 0; padding: 20px 18px 60px; }
+  .mobile-menu-btn { display: block; }
+  .sidebar-close { display: block; position: absolute; top: 22px; right: 18px; color: #94a3b8; font-size: 1.2rem; }
+  .overlay-scrim.show { display: block; }
+  .search-bar { width: 200px; }
+}
+
+/* ---------- MOBILE (<=768px) ---------- */
+@media (max-width: 768px) {
+  .section { padding: 70px 0; }
+  .features-grid { grid-template-columns: 1fr; }
+  .footer-grid { grid-template-columns: 1fr; gap: 30px; }
+  .footer-bottom { flex-direction: column; gap: 10px; text-align: center; }
+  .newsletter { padding: 36px 22px; margin: 0 16px; }
+  .newsletter-form { flex-direction: column; }
+
+  .topbar { flex-wrap: wrap; }
+  .search-bar { order: 3; width: 100%; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .insight-grid { grid-template-columns: 1fr 1fr; }
+
+  /* Tables become responsive cards */
+  .tx-table thead { display: none; }
+  .tx-table, .tx-table tbody, .tx-table tr, .tx-table td { display: block; width: 100%; }
+  .tx-table tr {
+    background: var(--card);
+    border-radius: var(--radius-sm);
+    margin-bottom: 14px;
+    padding: 6px 4px;
+    box-shadow: var(--shadow-sm);
+  }
+  .tx-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: none;
+    padding: 10px 16px;
+    font-size: 0.86rem;
+  }
+  .tx-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .tx-toolbar { flex-direction: column; align-items: stretch; }
+  .tx-filters-right { flex-wrap: wrap; }
+  .tx-balance-strip { grid-template-columns: 1fr; }
+
+  .fab { bottom: 22px; right: 22px; width: 52px; height: 52px; }
+  .heatmap { grid-template-columns: repeat(7, 1fr); }
+}
+
+/* ---------- SMALL MOBILE (<=480px) ---------- */
+@media (max-width: 480px) {
+  .container { padding: 0 16px; }
+  .hero { padding: 140px 0 70px; }
+  .hero-ctas { flex-direction: column; width: 100%; }
+  .hero-ctas .btn { width: 100%; }
+  .hero-stats { gap: 20px; flex-wrap: wrap; }
+  .insight-grid { grid-template-columns: 1fr; }
+  .form-row { flex-direction: column; gap: 0; }
+  .modal-box { padding: 20px; }
+  .profile-chip span { display: none; }
+  .greeting h1 { font-size: 1.15rem; }
+}

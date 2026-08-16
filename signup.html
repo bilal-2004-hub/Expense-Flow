@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account — ExpenseFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  /* ── AUTH LAYOUT ── */
+  .auth-page {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* ── LEFT PANEL ── */
+  .auth-panel {
+    position: relative;
+    background: linear-gradient(145deg, #0f172a 0%, #1e293b 50%, #1e40af 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 48px;
+    overflow: hidden;
+    color: #fff;
+  }
+  .auth-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 75% 25%, rgba(37,99,235,0.4) 0%, transparent 50%),
+      radial-gradient(circle at 20% 80%, rgba(59,130,246,0.2) 0%, transparent 50%);
+  }
+  .auth-panel-logo {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    text-decoration: none;
+  }
+  .auth-panel-logo .logo-mark {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    backdrop-filter: blur(8px);
+  }
+  .auth-panel-content {
+    position: relative;
+    z-index: 1;
+  }
+  .auth-panel-content h2 {
+    font-size: clamp(1.8rem, 2.5vw, 2.4rem);
+    color: #fff;
+    line-height: 1.25;
+    margin-bottom: 16px;
+  }
+  .auth-panel-content p {
+    color: rgba(255,255,255,0.65);
+    font-size: 0.97rem;
+    line-height: 1.75;
+    margin-bottom: 36px;
+    max-width: 380px;
+  }
+
+  /* Feature list on panel */
+  .panel-features { list-style: none; display: flex; flex-direction: column; gap: 16px; }
+  .panel-features li {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: rgba(255,255,255,0.85);
+    font-size: 0.92rem;
+  }
+  .panel-features li .pf-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    color: #93c5fd;
+    font-size: 0.9rem;
+  }
+
+  /* Floating cards */
+  .panel-card {
+    position: absolute;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 14px 18px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: floatCard 5s ease-in-out infinite;
+  }
+  .panel-card.pc1 { top: 160px; right: 28px; animation-delay: 0s; }
+  .panel-card .pc-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: rgba(37,99,235,0.5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; color: #fff;
+  }
+  .panel-card .pc-label { font-size: 0.7rem; color: rgba(255,255,255,0.6); }
+  .panel-card .pc-value { font-size: 0.9rem; font-weight: 700; color: #fff; }
+
+  /* Orbs */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.2;
+    pointer-events: none;
+  }
+  .orb1 { width: 280px; height: 280px; background: #3b82f6; top: -60px; right: -60px; }
+  .orb2 { width: 220px; height: 220px; background: #1d4ed8; bottom: 80px; left: -40px; }
+
+  /* ── RIGHT PANEL (FORM) ── */
+  .auth-form-side {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    padding: 48px 32px;
+    overflow-y: auto;
+  }
+  .auth-form-box {
+    width: 100%;
+    max-width: 440px;
+  }
+  .auth-form-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .auth-form-header h1 { font-size: 1.9rem; margin-bottom: 8px; }
+  .auth-form-header p { color: var(--text-secondary); font-size: 0.95rem; }
+  .auth-form-header p a {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .auth-form-header p a:hover { text-decoration: underline; }
+
+  /* Form Card */
+  .auth-card {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: 36px 32px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(15,23,42,0.05);
+  }
+
+  /* Form row */
+  .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* Form fields */
+  .form-group { margin-bottom: 18px; }
+  .form-group label {
+    display: block;
+    font-size: 0.87rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  .input-wrap { position: relative; }
+  .input-wrap i.input-icon {
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    pointer-events: none;
+  }
+  .input-wrap input {
+    width: 100%;
+    padding: 11px 14px 11px 40px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.93rem;
+    background: var(--bg);
+    color: var(--text-primary);
+    transition: var(--transition);
+    outline: none;
+  }
+  .input-wrap input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    background: var(--card);
+  }
+  .input-wrap input.error {
+    border-color: var(--expense);
+    box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+  }
+  .input-wrap input.success {
+    border-color: var(--success);
+  }
+  .input-wrap .toggle-pw {
+    position: absolute;
+    right: 14px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.88rem; padding: 2px;
+    transition: var(--transition);
+  }
+  .input-wrap .toggle-pw:hover { color: var(--primary); }
+
+  .field-error {
+    font-size: 0.77rem;
+    color: var(--expense);
+    margin-top: 5px;
+    display: none;
+    align-items: center;
+    gap: 4px;
+  }
+  .field-error.show { display: flex; }
+
+  /* Password strength */
+  .pw-strength-bar {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .pw-strength-bar span {
+    flex: 1;
+    height: 4px;
+    border-radius: 4px;
+    background: #e2e8f0;
+    transition: background 0.3s ease;
+  }
+  .pw-strength-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 5px;
+  }
+
+  /* Terms checkbox */
+  .terms-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 22px;
+    cursor: pointer;
+  }
+  .terms-wrap input[type="checkbox"] {
+    width: 16px; height: 16px;
+    margin-top: 2px;
+    accent-color: var(--primary);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .terms-wrap span {
+    font-size: 0.83rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .terms-wrap a { color: var(--primary); font-weight: 600; }
+
+  /* Submit */
+  .auth-submit {
+    width: 100%;
+    padding: 13px;
+    border-radius: 10px;
+    background: var(--gradient-primary);
+    color: #fff;
+    font-size: 0.97rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .auth-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md), 0 0 0 4px rgba(37,99,235,0.15);
+  }
+  .auth-submit:active { transform: translateY(0); }
+  .auth-submit .btn-spinner {
+    width: 18px; height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  .auth-submit.loading .btn-text { display: none; }
+  .auth-submit.loading .btn-spinner { display: block; }
+
+  /* Alert */
+  .auth-alert {
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 0.87rem;
+    margin-bottom: 18px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid;
+  }
+  .auth-alert.show { display: flex; }
+  .auth-alert.error { background: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
+  .auth-alert.success { background: #f0fdf4; color: #15803d; border-color: #86efac; }
+
+  /* Footer */
+  .auth-footer-note {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .auth-footer-note a { color: var(--primary); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .auth-page { grid-template-columns: 1fr; }
+    .auth-panel { display: none; }
+    .auth-form-side { padding: 32px 20px; }
+    .form-row-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="auth-page">
+
+  <!-- ====== LEFT BRAND PANEL ====== -->
+  <div class="auth-panel">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+
+    <a href="index.html" class="auth-panel-logo">
+      <span class="logo-mark"><i class="fa-solid fa-wave-square"></i></span>
+      ExpenseFlow
+    </a>
+
+    <div class="panel-card pc1">
+      <div class="pc-icon"><i class="fa-solid fa-piggy-bank"></i></div>
+      <div>
+        <div class="pc-label">Savings goal reached</div>
+        <div class="pc-value">🎉 $10,000 milestone</div>
+      </div>
+    </div>
+
+    <div class="auth-panel-content">
+      <h2>Start managing your money like a pro</h2>
+      <p>Join thousands of people who use ExpenseFlow to track every dollar, hit savings goals, and build lasting financial habits.</p>
+
+      <ul class="panel-features">
+        <li>
+          <div class="pf-icon"><i class="fa-solid fa-shield-halved"></i></div>
+          <span>Your data stays private — stored locally in your browser</span>
+        </li>
+        <li>
+          <div class="pf-icon"><i class="fa-solid fa-chart-line"></i></div>
+          <span>Beautiful analytics with monthly, weekly & yearly reports</span>
+        </li>
+        <li>
+          <div class="pf-icon"><i class="fa-solid fa-bullseye"></i></div>
+          <span>Set budgets, track goals, and get smart spending alerts</span>
+        </li>
+        <li>
+          <div class="pf-icon"><i class="fa-solid fa-mobile-screen"></i></div>
+          <span>Works perfectly on desktop, tablet, and mobile</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ====== RIGHT FORM PANEL ====== -->
+  <div class="auth-form-side">
+    <div class="auth-form-box">
+
+      <div class="auth-form-header">
+        <h1>Create account</h1>
+        <p>Already have an account? <a href="login.html">Login instead</a></p>
+      </div>
+
+      <div class="auth-card">
+
+        <div class="auth-alert error" id="reg-alert">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span id="reg-alert-msg">Something went wrong.</span>
+        </div>
+
+        <form id="signup-form" novalidate>
+          <!-- Name row -->
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="reg-fname">First name</label>
+              <div class="input-wrap">
+                <i class="fa-solid fa-user input-icon"></i>
+                <input type="text" id="reg-fname" placeholder="John" autocomplete="given-name">
+              </div>
+              <div class="field-error" id="fname-error"><i class="fa-solid fa-circle-exclamation"></i><span></span></div>
+            </div>
+            <div class="form-group">
+              <label for="reg-lname">Last name</label>
+              <div class="input-wrap">
+                <i class="fa-solid fa-user input-icon"></i>
+                <input type="text" id="reg-lname" placeholder="Doe" autocomplete="family-name">
+              </div>
+              <div class="field-error" id="lname-error"><i class="fa-solid fa-circle-exclamation"></i><span></span></div>
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label for="reg-email">Email address</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-envelope input-icon"></i>
+              <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="field-error" id="remail-error"><i class="fa-solid fa-circle-exclamation"></i><span></span></div>
+          </div>
+
+          <!-- Password -->
+          <div class="form-group">
+            <label for="reg-password">Password</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-lock input-icon"></i>
+              <input type="password" id="reg-password" placeholder="Create a strong password" autocomplete="new-password">
+              <button type="button" class="toggle-pw" id="toggle-pw1" aria-label="Show password">
+                <i class="fa-solid fa-eye" id="pw1-icon"></i>
+              </button>
+            </div>
+            <div class="field-error" id="rpw-error"><i class="fa-solid fa-circle-exclamation"></i><span></span></div>
+            <!-- Strength bar -->
+            <div class="pw-strength-bar">
+              <span id="bar1"></span>
+              <span id="bar2"></span>
+              <span id="bar3"></span>
+              <span id="bar4"></span>
+            </div>
+            <div class="pw-strength-label" id="pw-strength-label">Use 8+ characters with letters, numbers & symbols</div>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="form-group">
+            <label for="reg-confirm">Confirm password</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-lock input-icon"></i>
+              <input type="password" id="reg-confirm" placeholder="Re-enter your password" autocomplete="new-password">
+              <button type="button" class="toggle-pw" id="toggle-pw2" aria-label="Show confirm password">
+                <i class="fa-solid fa-eye" id="pw2-icon"></i>
+              </button>
+            </div>
+            <div class="field-error" id="rconfirm-error"><i class="fa-solid fa-circle-exclamation"></i><span></span></div>
+          </div>
+
+          <!-- Terms -->
+          <label class="terms-wrap">
+            <input type="checkbox" id="agree-terms">
+            <span>I agree to the <a href="#" onclick="return false;">Terms of Service</a> and <a href="#" onclick="return false;">Privacy Policy</a></span>
+          </label>
+
+          <button type="submit" class="auth-submit" id="reg-btn">
+            <span class="btn-text"><i class="fa-solid fa-user-plus"></i> Create Account</span>
+            <div class="btn-spinner"></div>
+          </button>
+        </form>
+
+      </div>
+
+      <p class="auth-footer-note">
+        Free forever. No credit card required.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/storage.js"></script>
+<script>
+  // ── Toggle password ──
+  function setupToggle(btnId, inputId, iconId) {
+    document.getElementById(btnId).addEventListener('click', () => {
+      const input = document.getElementById(inputId);
+      const icon  = document.getElementById(iconId);
+      const isText = input.type === 'text';
+      input.type = isText ? 'password' : 'text';
+      icon.className = isText ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+    });
+  }
+  setupToggle('toggle-pw1', 'reg-password', 'pw1-icon');
+  setupToggle('toggle-pw2', 'reg-confirm',  'pw2-icon');
+
+  // ── Password strength ──
+  const bars   = ['bar1','bar2','bar3','bar4'];
+  const colors = ['#ef4444','#f59e0b','#3b82f6','#22c55e'];
+  const labels = ['Too weak','Could be stronger','Almost there','Strong password ✓'];
+
+  function getStrength(pw) {
+    let score = 0;
+    if (pw.length >= 8)               score++;
+    if (/[A-Z]/.test(pw))             score++;
+    if (/[0-9]/.test(pw))             score++;
+    if (/[^A-Za-z0-9]/.test(pw))      score++;
+    return score;
+  }
+
+  document.getElementById('reg-password').addEventListener('input', function() {
+    const score = getStrength(this.value);
+    bars.forEach((id, i) => {
+      document.getElementById(id).style.background = i < score ? colors[score - 1] : '#e2e8f0';
+    });
+    document.getElementById('pw-strength-label').textContent = this.value
+      ? labels[score - 1] || 'Too weak'
+      : 'Use 8+ characters with letters, numbers & symbols';
+    document.getElementById('pw-strength-label').style.color = this.value ? colors[score - 1] : '';
+    if (this.value.trim()) clearError('reg-password', 'rpw-error');
+  });
+
+  // ── Validation helpers ──
+  function showError(inputId, errId, msg) {
+    const input = document.getElementById(inputId);
+    const err   = document.getElementById(errId);
+    if (input) input.classList.add('error');
+    err.classList.add('show');
+    err.querySelector('span').textContent = msg;
+  }
+  function clearError(inputId, errId) {
+    const input = document.getElementById(inputId);
+    const err   = document.getElementById(errId);
+    if (input) input.classList.remove('error');
+    err.classList.remove('show');
+  }
+
+  // Live clear on type
+  ['reg-fname','reg-lname','reg-email','reg-confirm'].forEach(id => {
+    const errMap = { 'reg-fname':'fname-error','reg-lname':'lname-error','reg-email':'remail-error','reg-confirm':'rconfirm-error' };
+    document.getElementById(id).addEventListener('input', function() {
+      if (this.value.trim()) clearError(id, errMap[id]);
+    });
+  });
+
+  // ── Alert ──
+  function showAlert(msg, type = 'error') {
+    const alert = document.getElementById('reg-alert');
+    document.getElementById('reg-alert-msg').textContent = msg;
+    alert.className = `auth-alert ${type} show`;
+  }
+  function hideAlert() { document.getElementById('reg-alert').classList.remove('show'); }
+
+  // ── Submit with API and Firebase Auth ──
+  document.getElementById('signup-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    hideAlert();
+
+    const fname   = document.getElementById('reg-fname').value.trim();
+    const lname   = document.getElementById('reg-lname').value.trim();
+    const email   = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const confirm = document.getElementById('reg-confirm').value;
+    const agreed  = document.getElementById('agree-terms').checked;
+    let valid = true;
+
+    if (!fname) { showError('reg-fname', 'fname-error', 'First name is required.'); valid = false; }
+    if (!lname) { showError('reg-lname', 'lname-error', 'Last name is required.'); valid = false; }
+
+    if (!email) {
+      showError('reg-email', 'remail-error', 'Email address is required.'); valid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showError('reg-email', 'remail-error', 'Please enter a valid email address.'); valid = false;
+    }
+
+    if (!password) {
+      showError('reg-password', 'rpw-error', 'Password is required.'); valid = false;
+    } else if (password.length < 8) {
+      showError('reg-password', 'rpw-error', 'Password must be at least 8 characters.'); valid = false;
+    }
+
+    if (!confirm) {
+      showError('reg-confirm', 'rconfirm-error', 'Please confirm your password.'); valid = false;
+    } else if (password !== confirm) {
+      showError('reg-confirm', 'rconfirm-error', 'Passwords do not match.'); valid = false;
+    }
+
+    if (!agreed) { showAlert('Please accept the Terms of Service to continue.'); valid = false; }
+    if (!valid) return;
+
+    // Loading
+    const btn = document.getElementById('reg-btn');
+    btn.classList.add('loading');
+
+    try {
+      if (typeof isFirebaseConfigured === 'function' && !isFirebaseConfigured()) {
+        throw new Error('Firebase API key is not configured. Please add your Firebase credentials in client/js/firebase-config.js');
+      }
+
+      const fullName = `${fname} ${lname}`;
+      // Call backend API signup endpoint
+      await API.post('/auth/signup', {
+        name: fullName,
+        email: email,
+        password: password
+      });
+
+      // Sign in client-side using Firebase Auth
+      const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+      const token = await user.getIdToken();
+
+      localStorage.setItem('ef_id_token', token);
+      localStorage.setItem('ef_current_user', JSON.stringify({
+        uid: user.uid,
+        email: user.email,
+        name: fullName
+      }));
+
+      btn.classList.remove('loading');
+      showAlert('Account created! Redirecting to your dashboard…', 'success');
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+    } catch (err) {
+      btn.classList.remove('loading');
+      let msg = err.message || 'Signup failed. Please try again.';
+      if (err.code === 'auth/api-key-not-valid' || err.code === 'auth/invalid-api-key' || (err.message && err.message.includes('api-key-not-valid'))) {
+        msg = 'Firebase API Key is missing or invalid. Please update client/js/firebase-config.js with your Firebase Web credentials.';
+      }
+      showAlert(msg);
+    }
+  });
+</script>
+</body>
+</html>
