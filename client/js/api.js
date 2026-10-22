@@ -5,9 +5,20 @@
    ========================================================= */
 
 const API = (() => {
-  const BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:5001/api'
-    : '/api';
+  // Resolve base URL for API calls
+  const isLocalEnv =
+    !window.location.hostname ||
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.startsWith('192.168.') ||
+    window.location.hostname.startsWith('10.') ||
+    window.location.protocol === 'file:';
+
+  const BASE_URL = window.location.port === '5001'
+    ? '/api'
+    : isLocalEnv
+      ? 'http://localhost:5001/api'
+      : '/api';
 
   async function getToken() {
     try {
@@ -40,14 +51,44 @@ const API = (() => {
 
     try {
       const response = await fetch(`${BASE_URL}${endpoint}`, config);
-      const data = await response.json();
+
+      let data = null;
+      const contentType = response.headers.get('content-type') || '';
+
+      if (contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          data = null;
+        }
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || `API Error (${response.status})`);
+        let errorMsg = data && data.message;
+        if (!errorMsg) {
+          if (response.status === 404) {
+            errorMsg = `API endpoint not found (${endpoint}). Please make sure the backend server is running on port 5001.`;
+          } else if (response.status === 500) {
+            errorMsg = 'Internal server error. Please check backend server logs.';
+          } else {
+            errorMsg = `Server error (${response.status} ${response.statusText || ''})`.trim();
+          }
+        }
+        throw new Error(errorMsg);
+      }
+
+      if (data === null) {
+        const text = await response.text();
+        return { text };
       }
 
       return data;
     } catch (err) {
+      if (err.name === 'TypeError' && (err.message.includes('fetch') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+        const networkError = new Error('Cannot connect to backend server. Please make sure the server is running on port 5001 (npm start in server folder).');
+        console.error(`API Request failed [${options.method || 'GET'} ${endpoint}]:`, networkError);
+        throw networkError;
+      }
       console.error(`API Request failed [${options.method || 'GET'} ${endpoint}]:`, err);
       throw err;
     }

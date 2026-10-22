@@ -23,6 +23,31 @@ const mimeTypes = {
 };
 
 const server = http.createServer((req, res) => {
+  // Proxy /api requests to backend server on port 5001
+  if (req.url.startsWith('/api')) {
+    const proxyReq = http.request({
+      hostname: '127.0.0.1',
+      port: 5001,
+      path: req.url,
+      method: req.method,
+      headers: { ...req.headers, host: '127.0.0.1:5001' }
+    }, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res, { end: true });
+    });
+
+    proxyReq.on('error', () => {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: false,
+        message: 'Backend server is offline. Please start it on port 5001 (npm start in server directory).'
+      }));
+    });
+
+    req.pipe(proxyReq, { end: true });
+    return;
+  }
+
   let filePath = path.join(BASE_DIR, req.url === '/' ? '/index.html' : req.url);
 
   // Strip query strings
@@ -34,10 +59,10 @@ const server = http.createServer((req, res) => {
   fs.readFile(filePath, (err, data) => {
     if (err) {
       if (err.code === 'ENOENT') {
-        res.writeHead(404);
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('404 Not Found');
       } else {
-        res.writeHead(500);
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
         res.end('500 Internal Server Error');
       }
       return;
