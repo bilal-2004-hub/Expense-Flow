@@ -14,11 +14,14 @@ const API = (() => {
     window.location.hostname.startsWith('10.') ||
     window.location.protocol === 'file:';
 
+  // Remote backend (separate Vercel project)
+  const REMOTE_API = 'https://server-bilal-85f7.vercel.app/api';
+
   const BASE_URL = window.location.port === '5001'
-    ? '/api'
+    ? '/api'                          // Dev: served by Express directly
     : isLocalEnv
-      ? 'http://localhost:5001/api'
-      : '/api';
+      ? 'http://localhost:5001/api'    // Dev: local Express on port 5001
+      : REMOTE_API;                   // Prod: cross-origin to backend project
 
   async function getToken() {
     try {
