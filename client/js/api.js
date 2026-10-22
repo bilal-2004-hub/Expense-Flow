@@ -49,8 +49,14 @@ const API = (() => {
       ...(options.body ? { body: JSON.stringify(options.body) } : {})
     };
 
+    const cleanEndpoint = endpoint.startsWith('/api/')
+      ? endpoint.slice(4)
+      : (endpoint === '/api' ? '' : endpoint);
+    const path = cleanEndpoint.startsWith('/') ? cleanEndpoint : `/${cleanEndpoint}`;
+    const url = `${BASE_URL}${path}`;
+
     try {
-      const response = await fetch(`${BASE_URL}${endpoint}`, config);
+      const response = await fetch(url, config);
 
       let data = null;
       const contentType = response.headers.get('content-type') || '';
@@ -67,9 +73,11 @@ const API = (() => {
         let errorMsg = data && data.message;
         if (!errorMsg) {
           if (response.status === 404) {
-            errorMsg = `API endpoint not found (${endpoint}). Please make sure the backend server is running on port 5001.`;
+            errorMsg = isLocalEnv
+              ? `API endpoint not found (${endpoint}). Please make sure the backend server is running on port 5001.`
+              : `API endpoint not found (${endpoint}).`;
           } else if (response.status === 500) {
-            errorMsg = 'Internal server error. Please check backend server logs.';
+            errorMsg = 'Internal server error. Please check server logs.';
           } else {
             errorMsg = `Server error (${response.status} ${response.statusText || ''})`.trim();
           }

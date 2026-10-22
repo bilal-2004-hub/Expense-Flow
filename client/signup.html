@@ -759,15 +759,35 @@
         }
 
         const fullName = `${fname} ${lname}`;
-        // Call backend API signup endpoint
-        await API.post('/auth/signup', {
-          name: fullName,
-          email: email,
-          password: password
-        });
+        let userCredential;
 
-        // Sign in client-side using Firebase Auth
-        const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+        // 1. Try backend API signup first
+        let backendRegistered = false;
+        try {
+          await API.post('/auth/signup', {
+            name: fullName,
+            email: email,
+            password: password
+          });
+          backendRegistered = true;
+        } catch (apiErr) {
+          console.warn('Backend signup API not reachable or returned error:', apiErr);
+          if (apiErr.message && (apiErr.message.includes('already exists') || apiErr.message.includes('already in use'))) {
+            throw apiErr;
+          }
+        }
+
+        // 2. Sign in or create account via client-side Firebase Auth
+        if (backendRegistered) {
+          userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+        } else {
+          // Fallback directly to Firebase Client SDK
+          userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+          if (userCredential.user && typeof userCredential.user.updateProfile === 'function') {
+            await userCredential.user.updateProfile({ displayName: fullName });
+          }
+        }
+
         const user = userCredential.user;
         const token = await user.getIdToken();
 
