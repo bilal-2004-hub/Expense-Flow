@@ -1,3 +1,6 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -19,13 +22,21 @@ app.use(morgan('dev'));
 
 // Basic health check route
 app.get('/', (req, res) => {
-  res.send('ExpenseFlow API is running');
+  res.json({ status: 'ok', message: 'ExpenseFlow API is running' });
 });
 
-// API Routes
+app.get('/api', (req, res) => {
+  res.json({ status: 'ok', message: 'ExpenseFlow API is running' });
+});
+
+// API Routes (mount on both /api/* and /* for full Vercel rewrite compatibility)
 app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/settings', settingsRoutes);
+
+app.use('/auth', authRoutes);
+app.use('/transactions', transactionRoutes);
+app.use('/settings', settingsRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
