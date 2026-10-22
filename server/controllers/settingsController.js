@@ -12,6 +12,7 @@ const getSettings = async (req, res) => {
     const defaults = {
       name: 'User',
       email: req.user.email || '',
+      avatar: '',
       theme: 'light',
       currency: 'USD',
       language: 'English',

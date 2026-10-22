@@ -147,30 +147,33 @@ function initDashboardPage() {
   if (!summaryRoot) return;
 
   const tx = Store.getTransactions();
-  // All-time totals for Income / Expenses cards
-  const allIncome  = tx.filter(t => t.type === 'income') .reduce((s, t) => s + Number(t.amount), 0);
-  const allExpense = tx.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+  // Only completed transactions affect the actual financial balances & summary cards
+  const completedTx = tx.filter(t => t.status !== 'Pending');
+  const allIncome  = completedTx.filter(t => t.type === 'income') .reduce((s, t) => s + Number(t.amount), 0);
+  const allExpense = completedTx.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
 
-  // Monthly stats — drives Savings & Balance cards
+  // Monthly stats — drives Savings widget
   const ms = Store.getMonthlyStats();
-  // Spendable balance: income − savings goal − expenses (this month)
-  const displayBalance = ms.spendableBalance; // can be negative
+  // Current Balance = all-time income minus all-time expenses (true running balance)
+  const displayBalance = allIncome - allExpense;
 
   setStat('stat-income',  allIncome,   '+8.2%', 'up');
   setStat('stat-expense', allExpense,  '+3.1%', 'down');
   // Savings card: show the locked-away goal amount
   setStat('stat-savings', ms.goal, ms.pct + '% funded', ms.status === 'dipping' ? 'down' : 'up');
-  // Balance card: spendable balance after savings + expenses deducted
+  // Balance card: real all-time balance (income − expenses)
   setStat('stat-balance', displayBalance,
-    displayBalance >= 0 ? 'Spendable' : 'Over budget',
+    displayBalance >= 0 ? 'Net Positive' : 'Over budget',
     displayBalance >= 0 ? 'up' : 'down');
 
   renderRecentTransactions(tx.slice(0, 5));
   renderBudgetProgress(allExpense);
-  renderIncomeExpenseChart(tx);
-  renderCategoryDonut(tx);
+  renderIncomeExpenseChart(completedTx);
+  renderCategoryDonut(completedTx);
   renderTimeline(tx.slice(0, 4));
   renderUpcomingBills();
+  renderNotifications();
+  setupNotificationEvents();
   renderMonthlySavingsWidget(ms);
   checkSavingsAlert(ms);
   populateCategorySelects();
@@ -281,23 +284,322 @@ function renderTimeline(list) {
     </div>`).join('');
 }
 
+/* =========================================================
+   NOTIFICATION SYSTEM & UPCOMING BILLS
+   ========================================================= */
+
+function getBillDueInfo(dateStr) {
+  const target = parseLocalDate(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffTime = target.getTime() - today.getTime();
+  const diffDays = Math.round(diffTime / 86400000);
+
+  if (diffDays < 0) {
+    const daysAgo = Math.abs(diffDays);
+    return {
+      status: 'overdue',
+      urgency: 'critical',
+      badgeText: daysAgo === 1 ? '1 day overdue' : `${daysAgo} days overdue`,
+      text: daysAgo === 1 ? 'Overdue by 1 day' : `Overdue by ${daysAgo} days`,
+      icon: 'fa-triangle-exclamation',
+      diffDays
+    };
+  } else if (diffDays === 0) {
+    return {
+      status: 'today',
+      urgency: 'high',
+      badgeText: 'Due today',
+      text: 'Due today',
+      icon: 'fa-bell',
+      diffDays
+    };
+  } else if (diffDays === 1) {
+    return {
+      status: 'tomorrow',
+      urgency: 'medium',
+      badgeText: 'Due tomorrow',
+      text: 'Due tomorrow',
+      icon: 'fa-clock',
+      diffDays
+    };
+  } else if (diffDays <= 3) {
+    return {
+      status: 'soon',
+      urgency: 'warning',
+      badgeText: `Due in ${diffDays} days`,
+      text: `Due in ${diffDays} days`,
+      icon: 'fa-calendar-day',
+      diffDays
+    };
+  } else {
+    return {
+      status: 'upcoming',
+      urgency: 'normal',
+      badgeText: `Due in ${diffDays} days`,
+      text: `Due in ${diffDays} days`,
+      icon: 'fa-calendar',
+      diffDays
+    };
+  }
+}
+
+function isBillAlertable(b) {
+  const due = getBillDueInfo(b.date);
+  // Alertable when 1 day left (tomorrow), due today, or overdue
+  return due.diffDays <= 1;
+}
+
+function getAlertableNotifications() {
+  const allBills = getUpcomingAndPendingBills();
+  return allBills.filter(isBillAlertable);
+}
+
+function getUpcomingAndPendingBills() {
+  const list = Store.getTransactions();
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const bills = list.filter(t => {
+    if (t.type !== 'expense') return false;
+    if (t.status === 'Pending') return true;
+    if (t.date && t.date > todayStr && t.status !== 'Completed') return true;
+    return false;
+  });
+
+  return bills.sort((a, b) => parseLocalDate(a.date) - parseLocalDate(b.date));
+}
+
+function renderNotifications() {
+  const badge = document.getElementById('notif-badge');
+  const countPill = document.getElementById('notif-count-pill');
+  const markAllBtn = document.getElementById('notif-mark-all-btn');
+  const listRoot = document.getElementById('notif-list');
+  const bellBtn = document.getElementById('notif-bell-btn');
+
+  const alertBills = getAlertableNotifications();
+  const allBills = getUpcomingAndPendingBills();
+  const laterBills = allBills.filter(b => !isBillAlertable(b));
+  const count = alertBills.length;
+
+  if (badge) {
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : count;
+      badge.style.display = 'flex';
+      bellBtn && bellBtn.classList.add('has-notifs');
+    } else {
+      badge.style.display = 'none';
+      bellBtn && bellBtn.classList.remove('has-notifs');
+    }
+  }
+
+  if (countPill) {
+    countPill.textContent = count;
+    countPill.style.display = count > 0 ? 'inline-block' : 'none';
+  }
+
+  if (markAllBtn) {
+    markAllBtn.style.display = count > 0 ? 'block' : 'none';
+  }
+
+  if (!listRoot) return;
+
+  if (count === 0 && laterBills.length === 0) {
+    listRoot.innerHTML = `
+      <div class="notif-empty">
+        <i class="fa-solid fa-circle-check"></i>
+        <h5>All caught up! 🎉</h5>
+        <p>No bills due within 1 day or pending right now.</p>
+      </div>`;
+    return;
+  }
+
+  let html = '';
+
+  if (alertBills.length > 0) {
+    html += alertBills.map(b => {
+      const meta = Store.categoryMeta(b.category);
+      const due = getBillDueInfo(b.date);
+      return `
+        <div class="notif-item" data-id="${b.id}">
+          <div class="notif-icon" style="background:${meta.color}">
+            <i class="fa-solid ${meta.icon}"></i>
+          </div>
+          <div class="notif-content">
+            <div class="notif-top-line">
+              <span class="notif-item-title" title="${escapeHTML(b.title)}">${escapeHTML(b.title)}</span>
+              <span class="notif-item-amount">${fmtMoney(Math.abs(b.amount))}</span>
+            </div>
+            <div class="notif-meta-line">
+              <span class="notif-due-badge ${due.status}">
+                <i class="fa-solid ${due.icon}"></i> ${due.badgeText}
+              </span>
+              <button class="notif-mark-paid-btn" onclick="markBillPaid('${b.id}')" title="Mark as Paid">
+                <i class="fa-solid fa-check"></i> Mark Paid
+              </button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  } else {
+    html += `
+      <div class="notif-empty" style="padding: 24px 16px;">
+        <i class="fa-solid fa-circle-check" style="font-size: 1.8rem; margin-bottom: 6px;"></i>
+        <h5>No urgent bills due</h5>
+        <p>You'll receive a notification when a bill has 1 day left.</p>
+      </div>`;
+  }
+
+  if (laterBills.length > 0) {
+    html += `
+      <div class="notif-scheduled-header" style="padding: 8px 18px; font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; background: rgba(100, 116, 139, 0.05); border-top: 1px solid var(--border);">
+        Scheduled for Later (${laterBills.length})
+      </div>`;
+    html += laterBills.map(b => {
+      const meta = Store.categoryMeta(b.category);
+      const due = getBillDueInfo(b.date);
+      return `
+        <div class="notif-item" style="opacity: 0.88;" data-id="${b.id}">
+          <div class="notif-icon" style="background:${meta.color}">
+            <i class="fa-solid ${meta.icon}"></i>
+          </div>
+          <div class="notif-content">
+            <div class="notif-top-line">
+              <span class="notif-item-title" title="${escapeHTML(b.title)}">${escapeHTML(b.title)}</span>
+              <span class="notif-item-amount">${fmtMoney(Math.abs(b.amount))}</span>
+            </div>
+            <div class="notif-meta-line">
+              <span class="notif-due-badge upcoming">
+                <i class="fa-solid fa-clock"></i> Due in ${due.diffDays} days
+              </span>
+              <button class="notif-mark-paid-btn" onclick="markBillPaid('${b.id}')" title="Mark as Paid">
+                <i class="fa-solid fa-check"></i> Mark Paid
+              </button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  listRoot.innerHTML = html;
+}
+
 function renderUpcomingBills() {
   const root = document.getElementById('upcoming-bills');
   if (!root) return;
-  const bills = [
-    { name: 'Internet & Wi-Fi', due: 'Due in 3 days', amount: 55 },
-    { name: 'Car Insurance', due: 'Due in 6 days', amount: 130 },
-    { name: 'Streaming Bundle', due: 'Due in 9 days', amount: 24.99 }
-  ];
-  root.innerHTML = bills.map(b => `
-    <div class="bill-row">
-      <div>
-        <div class="bill-name">${b.name}</div>
-        <div class="bill-date">${b.due}</div>
-      </div>
-      <div class="bill-amount">${fmtMoney(b.amount)}</div>
-    </div>`).join('');
+  const bills = getUpcomingAndPendingBills();
+
+  if (bills.length === 0) {
+    root.innerHTML = `
+      <div class="empty-bills">
+        <i class="fa-solid fa-circle-check"></i>
+        <p>No upcoming bills pending</p>
+        <span class="subtext">Future expense transactions will automatically appear here as scheduled reminders.</span>
+      </div>`;
+    return;
+  }
+
+  root.innerHTML = bills.slice(0, 5).map(b => {
+    const meta = Store.categoryMeta(b.category);
+    const due = getBillDueInfo(b.date);
+    return `
+      <div class="bill-row ${due.status}">
+        <div class="bill-left">
+          <div class="bill-icon" style="background:${meta.color}">
+            <i class="fa-solid ${meta.icon}"></i>
+          </div>
+          <div>
+            <div class="bill-name">${escapeHTML(b.title)}</div>
+            <div class="bill-date-row">
+              <span class="notif-due-badge ${due.status}">
+                <i class="fa-solid ${due.icon}"></i> ${due.badgeText}
+              </span>
+              <span class="bill-date">· Due ${fmtDate(b.date)}</span>
+            </div>
+          </div>
+        </div>
+        <div class="bill-right">
+          <div class="bill-amount">${fmtMoney(Math.abs(b.amount))}</div>
+          <button class="bill-mark-paid-btn" onclick="markBillPaid('${b.id}')" title="Mark as Paid">
+            <i class="fa-solid fa-check"></i> Paid
+          </button>
+        </div>
+      </div>`;
+  }).join('');
 }
+
+async function markBillPaid(id) {
+  try {
+    const bill = Store.getTransactions().find(t => t.id === id);
+    await Store.updateTransaction(id, { status: 'Completed' });
+    Toast.show(`Marked "${bill ? bill.title : 'Bill'}" as paid! 🎉`, 'success');
+    renderNotifications();
+    renderUpcomingBills();
+    if (document.querySelector('[data-page="dashboard"]')) {
+      initDashboardPage();
+    }
+    if (document.querySelector('[data-page="transactions"]')) {
+      renderTransactionsTable();
+    }
+  } catch (err) {
+    console.error('Error marking bill paid:', err);
+    Toast.show('Error updating bill status.', 'error');
+  }
+}
+
+async function markAllBillsPaid() {
+  const bills = getUpcomingAndPendingBills();
+  if (!bills.length) return;
+  try {
+    for (const b of bills) {
+      await Store.updateTransaction(b.id, { status: 'Completed' });
+    }
+    Toast.show(`All ${bills.length} bills marked as paid! 🎉`, 'success');
+    renderNotifications();
+    renderUpcomingBills();
+    if (document.querySelector('[data-page="dashboard"]')) {
+      initDashboardPage();
+    }
+    if (document.querySelector('[data-page="transactions"]')) {
+      renderTransactionsTable();
+    }
+  } catch (err) {
+    console.error('Error marking all bills paid:', err);
+    Toast.show('Error updating bills.', 'error');
+  }
+}
+
+function setupNotificationEvents() {
+  const bellBtn = document.getElementById('notif-bell-btn');
+  const dropdown = document.getElementById('notif-dropdown');
+  const markAllBtn = document.getElementById('notif-mark-all-btn');
+
+  if (!bellBtn || !dropdown) return;
+
+  if (!bellBtn.dataset.initialized) {
+    bellBtn.dataset.initialized = 'true';
+    bellBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
+        dropdown.classList.remove('open');
+      }
+    });
+  }
+
+  if (markAllBtn && !markAllBtn.dataset.initialized) {
+    markAllBtn.dataset.initialized = 'true';
+    markAllBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      markAllBillsPaid();
+    });
+  }
+}
+
+window.markBillPaid = markBillPaid;
+window.markAllBillsPaid = markAllBillsPaid;
 
 /**
  * Renders the Monthly Savings Tracker widget.
@@ -431,6 +733,12 @@ function initSavingsPromptModal() {
 function initQuickAddForm() {
   const form = document.getElementById('quick-add-form');
   if (!form) return;
+
+  const dateInput = form.querySelector('[name=date]');
+  if (dateInput && !dateInput.value) {
+    dateInput.value = new Date().toISOString().slice(0, 10);
+  }
+
   // Guard: only attach listeners once
   if (form.dataset.initialized) return;
   form.dataset.initialized = 'true';
@@ -450,8 +758,10 @@ function initQuickAddForm() {
     const title    = form.querySelector('[name=title]').value.trim();
     const amount   = parseFloat(form.querySelector('[name=amount]').value);
     const category = form.querySelector('[name=category]').value;
-    if (!title || !amount || amount <= 0) {
-      Toast.show('Please fill in a valid title and amount.', 'error');
+    const dateVal  = dateInput ? dateInput.value : new Date().toISOString().slice(0, 10);
+
+    if (!title || !amount || amount <= 0 || !dateVal) {
+      Toast.show('Please fill in all required fields.', 'error');
       return;
     }
 
@@ -464,14 +774,33 @@ function initQuickAddForm() {
     }
 
     try {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const isFuture = dateVal > todayStr;
+      const status = (isFuture && type === 'expense') ? 'Pending' : 'Completed';
+
       await Store.addTransaction({
         title, amount, category, type,
-        date: new Date().toISOString().slice(0, 10),
-        notes: '', status: 'Completed'
+        date: dateVal,
+        notes: '', status
       });
-      Toast.show('Transaction added successfully.', 'success');
+
+      const dueInfo = getBillDueInfo(dateVal);
+      let toastMsg = 'Transaction added successfully.';
+      if (isFuture && type === 'expense') {
+        if (dueInfo.diffDays <= 1) {
+          toastMsg = 'Bill due soon! Reminder active 🔔';
+        } else {
+          toastMsg = `Bill scheduled for ${fmtDate(dateVal)}. Reminder will alert 1 day before due 📅`;
+        }
+      }
+      Toast.show(toastMsg, 'success');
       form.reset();
+      if (dateInput) {
+        dateInput.value = new Date().toISOString().slice(0, 10);
+      }
       initDashboardPage();
+      renderNotifications();
+      renderUpcomingBills();
 
       if (shouldPrompt) {
         const modal    = document.getElementById('savings-prompt-modal');
@@ -499,6 +828,7 @@ function lastNMonthLabels(n) {
 }
 function sumForMonth(tx, m, type) {
   return tx.filter(t => {
+    if (t.status === 'Pending') return false;
     const d = parseLocalDate(t.date);
     return t.type === type && d.getFullYear() === m.year && d.getMonth() === m.month;
   }).reduce((s, t) => s + Number(t.amount), 0);
@@ -588,15 +918,34 @@ function initTransactionsPage() {
       return;
     }
     try {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const isFuture = data.date > todayStr;
       if (txState.editingId) {
-        await Store.updateTransaction(txState.editingId, data);
+        const existing = Store.getTransactions().find(t => t.id === txState.editingId);
+        let status = existing ? (existing.status || 'Completed') : (isFuture ? 'Pending' : 'Completed');
+        if (isFuture && data.type === 'expense' && (!existing || existing.status !== 'Completed')) {
+          status = 'Pending';
+        }
+        await Store.updateTransaction(txState.editingId, { ...data, status });
         Toast.show('Transaction updated.', 'success');
       } else {
-        await Store.addTransaction({ ...data, status: 'Completed' });
-        Toast.show('Transaction added successfully.', 'success');
+        const status = (isFuture && data.type === 'expense') ? 'Pending' : 'Completed';
+        await Store.addTransaction({ ...data, status });
+        const dueInfo = getBillDueInfo(data.date);
+        let toastMsg = 'Transaction added successfully.';
+        if (isFuture && data.type === 'expense') {
+          if (dueInfo.diffDays <= 1) {
+            toastMsg = 'Bill due soon! Reminder active 🔔';
+          } else {
+            toastMsg = `Bill scheduled for ${fmtDate(data.date)}. Reminder will alert 1 day before due 📅`;
+          }
+        }
+        Toast.show(toastMsg, 'success');
       }
       modal.classList.remove('open');
       renderTransactionsTable();
+      renderNotifications();
+      renderUpcomingBills();
     } catch (err) {
       console.error('Transaction save error:', err);
       Toast.show('Error saving transaction.', 'error');
@@ -612,6 +961,8 @@ function initTransactionsPage() {
         await Store.deleteTransaction(txState.deletingId);
         Toast.show('Transaction deleted.', 'warning');
         renderTransactionsTable();
+        renderNotifications();
+        renderUpcomingBills();
       } catch (err) {
         Toast.show('Error deleting transaction.', 'error');
       }
@@ -687,6 +1038,7 @@ function renderTransactionsTable() {
       <td data-label="Status"><span class="status-pill ${(t.status || 'Completed').toLowerCase()}">${t.status || 'Completed'}</span></td>
       <td data-label="Actions">
         <div class="row-actions">
+          ${t.status === 'Pending' ? `<button class="edit-btn" title="Mark as Paid" style="color:var(--success);" onclick="markBillPaid('${t.id}')"><i class="fa-solid fa-circle-check"></i></button>` : ''}
           <button class="edit-btn" title="Edit" onclick="editTransaction('${t.id}')"><i class="fa-solid fa-pen"></i></button>
           <button class="delete-btn" title="Delete" onclick="askDeleteTransaction('${t.id}')"><i class="fa-solid fa-trash"></i></button>
         </div>
@@ -705,7 +1057,7 @@ function renderTxBalance() {
   const balanceEl = document.getElementById('tx-bal-balance');
   if (!incomeEl) return; // not on transactions page
 
-  const all     = Store.getTransactions();
+  const all     = Store.getTransactions().filter(t => t.status !== 'Pending');
   const income  = all.filter(t => t.type === 'income') .reduce((s, t) => s + Number(t.amount), 0);
   const expense = all.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
   const balance = income - expense;
@@ -759,12 +1111,14 @@ function initSettingsPage() {
   const settings = Store.getSettings();
 
   // Prefer the currently logged-in user over the default settings
-  let userName  = settings.name;
-  let userEmail = settings.email;
+  let userName   = settings.name;
+  let userEmail  = settings.email;
+  let userAvatar = settings.avatar || localStorage.getItem('ef_user_avatar') || '';
   try {
     const currentUser = JSON.parse(localStorage.getItem('ef_current_user'));
-    if (currentUser && currentUser.name)  userName  = currentUser.name;
-    if (currentUser && currentUser.email) userEmail = currentUser.email;
+    if (currentUser && currentUser.name)     userName   = currentUser.name;
+    if (currentUser && currentUser.email)    userEmail  = currentUser.email;
+    if (currentUser && currentUser.photoURL) userAvatar = currentUser.photoURL;
   } catch (e) {}
 
   document.getElementById('settings-name').value = userName;
@@ -774,13 +1128,200 @@ function initSettingsPage() {
   document.getElementById('notif-budget').checked = settings.notifications.budget;
   document.getElementById('notif-bills').checked = settings.notifications.bills;
   document.getElementById('notif-weekly').checked = settings.notifications.weekly;
-  document.getElementById('profile-initials').textContent = initialsFrom(userName);
-  const topAvatar = document.getElementById('profile-initials-top');
-  if (topAvatar) topAvatar.textContent = initialsFrom(userName);
+
   const topChipName = document.querySelector('.profile-chip > span');
   if (topChipName) topChipName.textContent = userName;
   document.getElementById('profile-name-display').textContent = userName;
   document.getElementById('profile-email-display').textContent = userEmail;
+
+  function renderAvatar(avatarSrc, displayName) {
+    const profileAvatarContainer = document.getElementById('profile-avatar-container');
+    const bigInitials = profileAvatarContainer ? profileAvatarContainer.querySelector('#profile-initials') : null;
+    const avatarImg   = document.getElementById('profile-avatar-img');
+    const removeBtn   = document.getElementById('avatar-remove-btn');
+    const initials    = initialsFrom(displayName || userName);
+
+    if (avatarSrc) {
+      if (avatarImg) {
+        avatarImg.src = avatarSrc;
+        avatarImg.style.display = 'block';
+      }
+      if (bigInitials) bigInitials.style.display = 'none';
+      if (removeBtn) removeBtn.style.display = 'flex';
+    } else {
+      if (avatarImg) {
+        avatarImg.src = '';
+        avatarImg.style.display = 'none';
+      }
+      if (bigInitials) {
+        bigInitials.textContent = initials;
+        bigInitials.style.display = '';
+      }
+      if (removeBtn) removeBtn.style.display = 'none';
+    }
+
+    // Update topbar avatars across the page
+    document.querySelectorAll('.profile-chip .avatar-circle').forEach(circle => {
+      if (avatarSrc) {
+        circle.innerHTML = `<img src="${avatarSrc}" alt="${displayName || userName}">`;
+      } else {
+        circle.textContent = initials;
+        circle.style.display = '';
+      }
+    });
+  }
+
+  // Render initial avatar or initials
+  renderAvatar(userAvatar, userName);
+  if (typeof updateProfileCompletion === 'function') {
+    updateProfileCompletion({ name: userName, email: userEmail, avatar: userAvatar, monthlySavingsGoal: settings.monthlySavingsGoal });
+  }
+
+  // ── Camera Button & File Picker Logic ──
+  const avatarCameraBtn = document.getElementById('avatar-camera-btn');
+  const avatarFileInput = document.getElementById('avatar-file-input');
+  const avatarRemoveBtn = document.getElementById('avatar-remove-btn');
+
+  if (avatarCameraBtn && avatarFileInput) {
+    avatarCameraBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      avatarFileInput.click();
+    });
+  }
+
+  if (avatarFileInput) {
+    avatarFileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      // Validate image format (JPG, PNG, WEBP, GIF)
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+      const fileType = (file.type || '').toLowerCase();
+      const fileName = (file.name || '').toLowerCase();
+      const hasValidExt = /\.(jpg|jpeg|png|webp|gif)$/i.test(fileName);
+
+      if (!validTypes.includes(fileType) && !hasValidExt) {
+        Toast.show('Please select a valid image file (JPG, PNG, WEBP, or GIF).', 'error');
+        avatarFileInput.value = '';
+        return;
+      }
+
+      // Check max size: 10MB
+      if (file.size > 10 * 1024 * 1024) {
+        Toast.show('Image size exceeds 10MB. Please choose a smaller image.', 'error');
+        avatarFileInput.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = async () => {
+          try {
+            // Compress & downsample image using HTML5 Canvas (max 400x400)
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const maxDim = 400;
+
+            if (width > height) {
+              if (width > maxDim) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              }
+            } else {
+              if (height > maxDim) {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const mime = fileType.includes('png') ? 'image/png' : 'image/jpeg';
+            const dataUrl = canvas.toDataURL(mime, 0.88);
+
+            userAvatar = dataUrl;
+            localStorage.setItem('ef_user_avatar', dataUrl);
+
+            try {
+              const curUser = JSON.parse(localStorage.getItem('ef_current_user')) || {};
+              curUser.photoURL = dataUrl;
+              localStorage.setItem('ef_current_user', JSON.stringify(curUser));
+            } catch (err) {}
+
+            const curSettings = Store.getSettings();
+            await Store.saveSettings({ ...curSettings, avatar: dataUrl });
+
+            if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+              try {
+                await firebase.auth().currentUser.updateProfile({ photoURL: dataUrl });
+              } catch (fbErr) {
+                console.warn('Firebase photoURL update error:', fbErr);
+              }
+            }
+
+            renderAvatar(dataUrl, userName);
+            if (typeof updateProfileCompletion === 'function') {
+              updateProfileCompletion({ name: userName, email: userEmail, avatar: dataUrl });
+            }
+            Toast.show('Profile photo updated successfully!', 'success');
+          } catch (processErr) {
+            console.error('Error processing image:', processErr);
+            Toast.show('Failed to process image. Please try another file.', 'error');
+          } finally {
+            avatarFileInput.value = '';
+          }
+        };
+
+        img.onerror = () => {
+          Toast.show('Could not read image file.', 'error');
+          avatarFileInput.value = '';
+        };
+
+        img.src = event.target.result;
+      };
+
+      reader.onerror = () => {
+        Toast.show('Error reading selected file.', 'error');
+        avatarFileInput.value = '';
+      };
+
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (avatarRemoveBtn) {
+    avatarRemoveBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      userAvatar = '';
+      localStorage.removeItem('ef_user_avatar');
+
+      try {
+        const curUser = JSON.parse(localStorage.getItem('ef_current_user')) || {};
+        curUser.photoURL = '';
+        localStorage.setItem('ef_current_user', JSON.stringify(curUser));
+      } catch (err) {}
+
+      const curSettings = Store.getSettings();
+      await Store.saveSettings({ ...curSettings, avatar: '' });
+
+      if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+        try {
+          await firebase.auth().currentUser.updateProfile({ photoURL: '' });
+        } catch (fbErr) {}
+      }
+
+      renderAvatar('', userName);
+      if (typeof updateProfileCompletion === 'function') {
+        updateProfileCompletion({ name: userName, email: userEmail, avatar: '' });
+      }
+      Toast.show('Profile photo removed.', 'success');
+    });
+  }
 
   document.getElementById('settings-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -790,6 +1331,7 @@ function initSettingsPage() {
       ...settings,
       name: newName,
       email: newEmail,
+      avatar: userAvatar || settings.avatar || '',
       currency: document.getElementById('settings-currency').value,
       language: document.getElementById('settings-language').value,
       notifications: {
@@ -805,15 +1347,18 @@ function initSettingsPage() {
       const currentUser = JSON.parse(localStorage.getItem('ef_current_user')) || {};
       currentUser.name  = newName;
       currentUser.email = newEmail;
+      currentUser.photoURL = userAvatar || '';
       localStorage.setItem('ef_current_user', JSON.stringify(currentUser));
     } catch (e) {}
 
     Toast.show('Settings saved successfully.', 'success');
-    document.getElementById('profile-initials').textContent = initialsFrom(newName);
-    if (topAvatar) topAvatar.textContent = initialsFrom(newName);
+    renderAvatar(userAvatar, newName);
     if (topChipName) topChipName.textContent = newName;
     document.getElementById('profile-name-display').textContent = newName;
     document.getElementById('profile-email-display').textContent = newEmail;
+    if (typeof updateProfileCompletion === 'function') {
+      updateProfileCompletion(updated);
+    }
   });
 
   const exportDataBtn = document.getElementById('export-data-btn');
@@ -867,6 +1412,9 @@ function initSettingsPage() {
       }
       const updated = { ...Store.getSettings(), monthlySavingsGoal: raw };
       await Store.saveSettings(updated);
+      if (typeof updateProfileCompletion === 'function') {
+        updateProfileCompletion({ monthlySavingsGoal: raw });
+      }
       Toast.show(`Monthly savings goal set to ${fmtMoney(raw)} 🎯`, 'success');
     });
   }
@@ -874,6 +1422,21 @@ function initSettingsPage() {
 
 function initialsFrom(name) {
   return name.split(' ').filter(Boolean).slice(0, 2).map(n => n[0].toUpperCase()).join('');
+}
+
+function setupDatePickers() {
+  document.querySelectorAll('input[type="date"]').forEach(inp => {
+    if (!inp.dataset.pickerInit) {
+      inp.dataset.pickerInit = 'true';
+      inp.addEventListener('click', () => {
+        try {
+          if (typeof inp.showPicker === 'function') {
+            inp.showPicker();
+          }
+        } catch (e) {}
+      });
+    }
+  });
 }
 
 /* ---------- INIT ---------- */
@@ -884,6 +1447,9 @@ window.onAppDataReady = () => {
   initTransactionsPage();
   initSettingsPage();
   initSavingsPromptModal();
+  renderNotifications();
+  setupNotificationEvents();
+  setupDatePickers();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -891,4 +1457,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTransactionsPage();
   initSettingsPage();
   initSavingsPromptModal();
+  renderNotifications();
+  setupNotificationEvents();
+  setupDatePickers();
 });

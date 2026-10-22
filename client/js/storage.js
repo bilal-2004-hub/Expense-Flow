@@ -27,6 +27,7 @@ const Store = (() => {
     return {
       name: 'User',
       email: '',
+      avatar: '',
       theme: localStorage.getItem('ef_theme') || 'light',
       currency: 'USD',
       language: 'English',
@@ -137,6 +138,7 @@ const Store = (() => {
 
     const txThisMonth = (txList || []).filter(t => {
       if (!t.date) return false;
+      if (t.status === 'Pending') return false;
       const d = new Date(t.date + 'T00:00:00');
       return d.getFullYear() === year && d.getMonth() === month;
     });

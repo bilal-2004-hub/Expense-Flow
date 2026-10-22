@@ -491,8 +491,10 @@ input, select, textarea { font-family: inherit; }
 .avatar-circle {
   width: 42px; height: 42px; border-radius: 50%;
   background: var(--gradient-primary);
-  display: flex; align-items: center; justify-content: center;
+  display: inline-flex; align-items: center; justify-content: center;
   color: #fff; font-weight: 600; font-size: 0.9rem;
+  line-height: 1; text-align: center; overflow: hidden;
+  flex-shrink: 0; user-select: none;
 }
 .testimonial-person strong { display: block; font-size: 0.92rem; }
 .testimonial-person span { font-size: 0.8rem; color: var(--text-secondary); }

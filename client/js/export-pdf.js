@@ -142,6 +142,7 @@ function exportToPDF() {
   let totalIncome  = 0;
   let totalExpense = 0;
   transactions.forEach(t => {
+    if (t.status === 'Pending') return;
     if (t.type === 'income')  totalIncome  += Number(t.amount);
     if (t.type === 'expense') totalExpense += Number(t.amount);
   });

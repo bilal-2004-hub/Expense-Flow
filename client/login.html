@@ -571,6 +571,20 @@
         throw new Error('Firebase API key is not configured. Please add your Firebase credentials in client/js/firebase-config.js');
       }
 
+      const rememberMe = document.getElementById('remember-me').checked;
+
+      // Set persistence based on "Remember me"
+      if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth.Auth && firebase.auth.Auth.Persistence) {
+        try {
+          const persistence = rememberMe
+            ? firebase.auth.Auth.Persistence.LOCAL
+            : firebase.auth.Auth.Persistence.SESSION;
+          await firebase.auth().setPersistence(persistence);
+        } catch (persErr) {
+          console.warn('Could not set Firebase persistence:', persErr);
+        }
+      }
+
       // Authenticate using Firebase Web SDK
       const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
       const user = userCredential.user;
@@ -583,11 +597,12 @@
         name: user.displayName || email.split('@')[0]
       }));
 
-      // Save credentials if "Remember me" is checked
-      const rememberMe = document.getElementById('remember-me').checked;
+      // Save credentials & flag if "Remember me" is checked
       if (rememberMe) {
+        localStorage.setItem('ef_remember_me', 'true');
         localStorage.setItem('ef_remembered_credentials', JSON.stringify({ email, password }));
       } else {
+        localStorage.removeItem('ef_remember_me');
         localStorage.removeItem('ef_remembered_credentials');
       }
 
